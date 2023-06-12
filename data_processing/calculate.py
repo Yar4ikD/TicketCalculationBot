@@ -1,10 +1,9 @@
 """Модуль расчета количества билетов"""
 
 import random
-import time
-from typing import Dict
-
-from loguru import logger
+from collections import deque
+from typing import Dict, Union
+from .node import Node
 
 
 class Calculate:
@@ -15,78 +14,141 @@ class Calculate:
 
     """
 
-    choice_value = None
-    input_data = None
-    output_data = None
+    def __init__(self, input_sum: int) -> None:
 
-    @classmethod
-    def _create_output_dict(cls, input_dict: Dict) -> None:
-        cls.output_data = {
-            key: {
-                'count_tick': 0,
-                'sum_count': 0,
-                'end_num': 0,
-                'tick_left': 0,
-                'sum_left': 0,
-            }
-            for key in input_dict
-        }
-        cls.output_data['sum_money'] = 0
+        self.summ = input_sum
+        self.__graph = None
+        self.data = None
+        self.ticket = None
+        self.previous_ticket = None
+        self.last_ticket = None
 
-    @classmethod
-    def calculate(cls, data: Dict[int, list[int, int]], money: int) -> Dict:
-        cls._create_output_dict(data)
+        self.new_sum = 0
+        self.searched = [0]
 
-        cls.input_data = data
-        cls.choice_value = [ticket for ticket, num in data.items() if num[1] > 0]
+    @property
+    def graph(self) -> Dict:
+        return self.__graph
 
-        start_work = time.time()
-        while cls.output_data['sum_money'] != money and money > cls.output_data['sum_money']:
+    @graph.setter
+    def graph(self, data: Dict) -> None:
+        self.__graph = {key: [node for node in data.keys() if node != key and data[key].count > 0] for key in data}
 
-            if int(time.time() - start_work) >= 3:
-                time_stop = int(time.time() - start_work)
-                logger.error(f'Ошибка расчета, time - {time_stop} сек.')
-                return cls.output_data
+    @graph.getter
+    def graph(self) -> Dict:
+        return self.__graph
 
-            try:
-                chosen_ticket = random.choice(cls.choice_value)
+    def calculate(self, data: Dict[Union[int, str], Union[Node, str, int]]) -> Dict:
+        """
+        Метод расчета.
 
-            except IndexError as err:
-                logger.error(err)
-                return cls.output_data
+        Args:
+            data: Данные указанные пользователем (номинал, стартовый номер и количество).
 
-            if not cls._check_number(chosen_ticket) or cls.output_data['sum_money'] + chosen_ticket > money:
-                continue
+        Returns: input_data
 
-            cls.output_data[chosen_ticket]['count_tick'] += 1
-            cls.output_data[chosen_ticket]['sum_count'] += chosen_ticket
-            cls.output_data['sum_money'] += chosen_ticket
+        """
 
-            cls.input_data[chosen_ticket][0] += 1
-            cls.input_data[chosen_ticket][1] -= 1
+        self.graph = data
+        self.data = data
 
-        for tick, val in cls.input_data.items():
-            sum_left = val[1] * tick
+        self.ticket = random.choice([key for key in self.data])
+        if len(self.data) < 2:  # если пользователь указал только один номинал
+            self.graph[self.ticket] = [self.ticket]
 
-            cls.output_data[tick]['end_num'] = val[0]
-            cls.output_data[tick]['tick_left'] = val[1]
-            cls.output_data[tick]['sum_left'] = sum_left
+        search_deque = deque()  # создаем очередь
+        search_deque += self.graph[self.ticket]  # добавляем
 
-        return cls.output_data
+        while search_deque:
+            self.ticket = search_deque.popleft()
 
-    @classmethod
-    def _check_number(cls, num: int) -> bool:
+            if self.data[self.ticket].count > 1 and self.ticket not in self.searched:
 
-        if cls.input_data[num][1] != 0:
+                if self.check_balance_new_sum():
+                    self.new_sum -= self.last_ticket
+                    self.data[self.last_ticket].taken_tickets = -1
+
+                    self.searched[0] = self.last_ticket
+                    self.last_ticket = self.previous_ticket
+
+                    search_deque += self.graph[self.last_ticket]
+                    continue
+
+                if self.check_new_sum():
+                    self.new_sum += self.ticket
+
+                    self.data[self.ticket].taken_tickets = 1
+                    self.data['sum_money'] = self.new_sum
+
+                    return self.data
+
+                else:
+                    search_deque += self.graph[self.ticket]
+
+                    self.new_sum += self.ticket
+                    self.data[self.ticket].taken_tickets = 1
+
+                    if self.previous_ticket is None:
+                        self.previous_ticket = self.ticket
+
+                    elif self.previous_ticket and self.last_ticket is None:
+                        self.last_ticket = self.ticket
+
+                    else:
+                        self.previous_ticket = self.last_ticket
+                        self.last_ticket = self.ticket
+
+        self.data['sum_money'] = self.new_sum
+        self.data['error'] = 'Ошибка работы расчета!\nПроверьте корректность ввода данных!'
+
+        return self.data
+
+    def check_new_sum(self) -> bool:
+        """
+        Метод делает проверку на равенство введенной суммы пользователем и новой расчетной суммы.
+
+        Returns: bool
+
+        """
+
+        if (self.new_sum + self.ticket) == self.summ:
             return True
 
-        cls.choice_value.remove(num)
+    def check_balance_new_sum(self) -> bool:
+
+        if (self.new_sum + self.ticket) > self.summ:
+            remainder = self.summ - self.new_sum
+
+            if remainder in (key for key in self.data if self.data[key].count > 0):
+                self.ticket = remainder
+                return False
+
+            # if self.ticket != self.last_ticket_key:
+            remainderLast = self.summ - ((self.new_sum - self.last_ticket) + self.ticket)
+            remainderPrevious = self.summ - ((self.new_sum - self.previous_ticket) + self.ticket)
+
+            for key in self.data:
+                if key == self.ticket and self.data[self.ticket].count < 2:
+                    continue
+
+                if key <= remainderLast and self.data[key].count > 0:
+                    self.new_sum = remainderLast
+                    self.data[self.last_ticket].taken_tickets = -1
+                    self.last_ticket = self.ticket
+                    self.data[self.ticket].taken_tickets = 1
+                    self.ticket = key
+
+                    return False
+
+                if key <= remainderPrevious and self.data[key].count > 0:
+                    self.new_sum = remainderPrevious
+                    self.data[self.previous_ticket].taken_tickets = -1
+                    self.previous_ticket = self.ticket
+                    self.data[self.ticket].taken_tickets = 1
+                    self.ticket = key
+
+                    return False
+
+            return True
+
         return False
-
-
-if __name__ == '__main__':
-    calcul = Calculate()
-    summ = 1000
-    data = {500: [5, 6], 400: [7, 8], 300: [6, 10]}
-    res = calcul.calculate(data=data, money=summ)
-    print(res)

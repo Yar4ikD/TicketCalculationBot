@@ -1,10 +1,12 @@
 from typing import Dict
 
+from data_processing.node import Node
+
 
 class DataCheck:
 
     @classmethod
-    def money_and_tickets(cls, input_data: Dict[int, list[int, int]], money: int) -> bool:
-        summ = sum(list(ticket * val[1] for ticket, val in input_data.items()))
+    def money_and_tickets(cls, input_data: Dict[int, Node], money: int) -> bool:
+        summ = sum(list(ticket * node.count for ticket, node in input_data.items()))
 
         return summ >= money

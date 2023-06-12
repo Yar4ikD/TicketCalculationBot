@@ -1,4 +1,3 @@
-import os
 
 from aiogram import types, Dispatcher
 from aiogram.dispatcher import FSMContext
@@ -10,8 +9,9 @@ from loguru import logger
 from commands.base import stop_working
 from data_processing.calculate import Calculate
 from data_processing.checking import DataCheck
+from data_processing.node import Node
 from data_processing.showInputData import show
-from data_processing.showResult import result_formation, create_template
+from data_processing.showResult import standard_format, file_format
 from keyboard.input_data import Buttons
 from text.commandsText import (information_start,
                                choose_ticket,
@@ -19,26 +19,33 @@ from text.commandsText import (information_start,
                                get_ticket_error,
                                enter_start_number,
                                err_st_num_or_amount,
-                               changed_section
+                               changed_section,
+                               choose_format_view,
+                               err_input_sum
                                )
 
 
 class Command(StatesGroup):
     """
-        Подкласс наследует от базового класса StatesGroup.
-        В классе прописана работа команды ТГ-бота: .
-        Приватные атрибуты класса это FSM состояние ТГ-бота.
+    Подкласс наследует от базового класса StatesGroup.
+    В классе прописана работа команды ТГ-бота: .
+    Приватные атрибуты класса это FSM состояние ТГ-бота.
+
     """
+
     _money = State()
     _get_ticket = State()
     _start_number = State()
     _amount = State()
-    _result = State()
+    _calculate = State()
+    _view = State()
 
     tickets = {'500₽': 500, '400₽': 400, '300₽': 300, '250₽': 250, '200₽': 200, '150₽': 150, '100₽': 100, '50₽': 50}
+
     current_value = None
     input_data = dict()
     money = 0
+    resultDict = None
 
     @classmethod
     async def start(cls, message: types.Message, state: FSMContext) -> None:
@@ -77,7 +84,7 @@ class Command(StatesGroup):
 
         else:
             try:
-                cls.money = int(message.text)
+                cls.money = abs(int(message.text))
 
                 assert cls.money > 999, 'Сума меньше 1000'
                 assert cls.money % 2 == 0, 'Сума не кратна 2'
@@ -86,10 +93,8 @@ class Command(StatesGroup):
                 await cls._get_ticket.set()
                 await message.answer(text=choose_ticket, reply_markup=Buttons.ticket_numbers())
 
-            except (ValueError, AssertionError) as err:
-                logger.debug(f'Указанные данные не корректны -> {err}')
-
-                await message.reply(text='Jib,rf')
+            except (ValueError, AssertionError):
+                await message.reply(text=err_input_sum)
 
     @classmethod
     async def ticket_value(cls, message: types.Message, state: FSMContext) -> None:
@@ -105,7 +110,7 @@ class Command(StatesGroup):
         """
 
         if message.text == Buttons.complete_input_but.text:
-            await cls._result.set()
+            await cls._calculate.set()
             await message.answer(text=left_data_entry, reply_markup=Buttons.view_calculate())
 
         else:
@@ -116,7 +121,6 @@ class Command(StatesGroup):
                 await message.answer(text=enter_start_number, reply_markup=ReplyKeyboardRemove())
 
             except KeyError:
-                logger.debug(f'Пользователь не нажал на список, ввел данные -> {message.text}')
                 await message.reply(text=get_ticket_error)
 
     @classmethod
@@ -133,13 +137,14 @@ class Command(StatesGroup):
         """
 
         try:
-            cls.input_data[cls.current_value] = [abs(int(message.text))]
+            value = abs(int(message.text))
+            cls.input_data[cls.current_value] = Node(denomination=cls.current_value)
+            cls.input_data[cls.current_value].start_number = value
 
             await cls._amount.set()
             await message.answer('Принято!\nКакое кол-во билета?.')
 
         except ValueError:
-            logger.error(f'Ошибка ввода начального номера > {message.text}')
             await message.reply(text=err_st_num_or_amount)
 
     @classmethod
@@ -156,16 +161,17 @@ class Command(StatesGroup):
         """
 
         try:
-            cls.input_data[cls.current_value].append(abs(int(message.text)))
+            value = abs(int(message.text))
+            cls.input_data[cls.current_value].count = value
+
             await cls._get_ticket.set()
             await message.answer(text='Принято!\nПродолжаем.', reply_markup=Buttons.ticket_numbers())
 
         except ValueError:
-            logger.error(f'Ошибка ввода количества билетов -> {message.text}')
             await message.reply(text=err_st_num_or_amount)
 
     @classmethod
-    async def display_result(cls, message: types.Message, state: FSMContext):
+    async def calculate(cls, message: types.Message, state: FSMContext):
 
         if message.text == Buttons.view_data_but.text:  # выводим данные которые ввел пользователь
             msg = show(cls.input_data, cls.money)
@@ -175,46 +181,69 @@ class Command(StatesGroup):
             await cls._money.set()
             await message.answer(text=changed_section, reply_markup=Buttons.skip())
 
-        elif message.text == Buttons.calculate_but.text:  # запускаем расчет и выводи результат
+        elif message.text == Buttons.calculate_but.text:  # запускаем расчет
+
             if DataCheck.money_and_tickets(input_data=cls.input_data, money=cls.money):  # если сумма билетов >= денег
-                result = Calculate.calculate(data=cls.input_data, money=cls.money)
-                file_path = create_template(data=result)
+                cls.resultDict = Calculate(input_sum=cls.money).calculate(data=cls.input_data)
 
-                msg = result_formation(data=result)
-                await message.answer(text=msg, reply_markup=Buttons.return_input_or_out())
-
-                try:
-                    file = open(file_path, 'rb')
-
-                except FileNotFoundError as err:
-                    logger.exception(err)
-                    await message.answer('Ошибка отправки файла! Обратитесь к администратору.')
-                else:
-                    await message.answer_document(file)
-
-                # finally:
-                #     file.close()
-
-            else:
-                logger.debug('Сумма билетов, меньшая суммы денег')
-                await message.answer(
-                    text='Сумма билетов, <b>меньшая</b> суммы денег.',
-                    reply_markup=Buttons.return_input_or_out()
-                )
+                await cls._view.set()
+                await message.answer(text=choose_format_view, reply_markup=Buttons.result_format())
 
         else:
-            await message.reply('Я не понимаю что мне делать.')
+            await message.answer(
+                text='Сумма билетов, <b>меньшая</b> суммы денег.',
+                reply_markup=Buttons.return_input_or_out()
+            )
+
+    @classmethod
+    async def show_result(cls, message: types.Message, state: FSMContext):
+        """
+        Обработчик события, выводит результат работы команды - расчета номиналов,
+        в одном из двух форматов.
+
+        Args:
+            message: Сообщение от пользователя
+            state: Машинное состояние ТГ-бота.
+
+        Returns: None
+
+        """
+
+        if message.text == Buttons.show_standard_format.text:
+            msg = standard_format(data=cls.resultDict)
+
+            await message.answer(text=msg, reply_markup=ReplyKeyboardRemove())
+            await state.finish()
+
+        elif message.text == Buttons.show_file_format.text:
+            file_path = file_format(data=cls.resultDict)
+
+            try:
+                file = open(file_path, 'rb')
+
+            except FileNotFoundError as err:
+                logger.exception(err)
+                await message.answer('Ошибка отправки файла! Обратитесь к администратору.')
+
+            else:
+                await message.answer_document(file, reply_markup=ReplyKeyboardRemove())
+                await state.finish()
+
+        else:
+            await message.reply('Я не понимаю что мне делать.', reply_markup=Buttons.result_format())
 
     @classmethod
     async def register_command(cls, dp: Dispatcher) -> None:
         """
         Метод класса регистрирует обработчики сообщений, декораторы.
+
         Args:
             dp: Передает класс Dispatcher.
 
         Returns: None
 
         """
+
         dp.register_message_handler(cls.start, Text(equals=['start', 'старт', '/start'], ignore_case=True), state=None)
         dp.register_message_handler(stop_working, Text(Buttons.but_out.text), state='*')
         dp.register_message_handler(callback=cls.sum_money, state=cls._money)
@@ -223,4 +252,5 @@ class Command(StatesGroup):
         dp.register_message_handler(callback=cls.start_number, state=cls._start_number)
         dp.register_message_handler(callback=cls.amount, state=cls._amount)
 
-        dp.register_message_handler(callback=cls.display_result, state=cls._result)
+        dp.register_message_handler(callback=cls.calculate, state=cls._calculate)
+        dp.register_message_handler(callback=cls.show_result, state=cls._view)

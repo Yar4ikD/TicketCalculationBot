@@ -1,5 +1,6 @@
 from aiogram import types
 from aiogram.dispatcher import FSMContext
+from aiogram.types import ReplyKeyboardRemove
 from loguru import logger
 
 from text.commandsText import after_out
@@ -23,4 +24,4 @@ async def stop_working(callback: types.Message, state: FSMContext) -> None:
         return
 
     await state.finish()
-    await callback.answer(text=after_out)
+    await callback.answer(text=after_out, reply_markup=ReplyKeyboardRemove())
