@@ -1,27 +1,32 @@
-"""Модуль расчета количества билетов"""
+"""Модуль расчета количества номиналов билетов для заданной суммы денег."""
 
 import random
 from collections import deque
 from typing import Dict, Union
-from .node import Node
+from ticket.node import Node
 
 
 class Calculate:
     """
-    Клас для расчета количества номиналов для введенной сумы.
+    Класс для расчета введенной суммы из заранее заданных номиналов.
     Номиналы билетов выбираются из тех данных которые ввел пользователь.
-    Выбор происходит рандомно.
 
     """
 
     def __init__(self, input_sum: int) -> None:
+        """
+        Конструктор класса.
 
+        Args:
+            input_sum: Сумма для расчета.
+
+        """
         self.summ = input_sum
         self.__graph = None
         self.data = None
-        self.ticket = None
-        self.previous_ticket = None
-        self.last_ticket = None
+        self.ticket = None  # текущий узел, номинал билета
+        self.previous_ticket = None  # предыдущий номинал
+        self.last_ticket = None  # последний номинал
 
         self.new_sum = 0
         self.searched = [0]
@@ -38,12 +43,13 @@ class Calculate:
     def graph(self) -> Dict:
         return self.__graph
 
-    def calculate(self, data: Dict[Union[int, str], Union[Node, str, int]]) -> Dict:
+    def calculate(self, data: Dict[Union[int, str], Union[Node, str, int]]) -> Dict[Union[int, str], Union[Node, str]]:
         """
         Метод расчета.
+        Для расчета суммы используется алгоритм обход графа: поиск в ширину (BFS).
 
         Args:
-            data: Данные указанные пользователем (номинал, стартовый номер и количество).
+            data: Данные указанные пользователем (номиналы, стартовые номера и их количество).
 
         Returns: input_data
 
@@ -53,11 +59,12 @@ class Calculate:
         self.data = data
 
         self.ticket = random.choice([key for key in self.data])
+
         if len(self.data) < 2:  # если пользователь указал только один номинал
             self.graph[self.ticket] = [self.ticket]
 
-        search_deque = deque()  # создаем очередь
-        search_deque += self.graph[self.ticket]  # добавляем
+        search_deque = deque()  # создаем очередь FIFO
+        search_deque += self.graph[self.ticket]  # добавляем соседей узла
 
         while search_deque:
             self.ticket = search_deque.popleft()
@@ -74,7 +81,7 @@ class Calculate:
                     search_deque += self.graph[self.last_ticket]
                     continue
 
-                if self.check_new_sum():
+                if self.is_new_sum_equal_input_sum():
                     self.new_sum += self.ticket
 
                     self.data[self.ticket].taken_tickets = 1
@@ -103,7 +110,7 @@ class Calculate:
 
         return self.data
 
-    def check_new_sum(self) -> bool:
+    def is_new_sum_equal_input_sum(self) -> bool:
         """
         Метод делает проверку на равенство введенной суммы пользователем и новой расчетной суммы.
 
@@ -116,23 +123,22 @@ class Calculate:
 
     def check_balance_new_sum(self) -> bool:
 
-        if (self.new_sum + self.ticket) > self.summ:
+        if (self.new_sum + self.ticket) > self.summ:  # если новая сумма больше введенной суммы
             remainder = self.summ - self.new_sum
 
             if remainder in (key for key in self.data if self.data[key].count > 0):
                 self.ticket = remainder
                 return False
 
-            # if self.ticket != self.last_ticket_key:
-            remainderLast = self.summ - ((self.new_sum - self.last_ticket) + self.ticket)
-            remainderPrevious = self.summ - ((self.new_sum - self.previous_ticket) + self.ticket)
+            remainder_last = self.summ - ((self.new_sum - self.last_ticket) + self.ticket)
+            remainder_previous = self.summ - ((self.new_sum - self.previous_ticket) + self.ticket)
 
             for key in self.data:
                 if key == self.ticket and self.data[self.ticket].count < 2:
                     continue
 
-                if key <= remainderLast and self.data[key].count > 0:
-                    self.new_sum = remainderLast
+                if key <= remainder_last and self.data[key].count > 0:
+                    self.new_sum = remainder_last
                     self.data[self.last_ticket].taken_tickets = -1
                     self.last_ticket = self.ticket
                     self.data[self.ticket].taken_tickets = 1
@@ -140,8 +146,8 @@ class Calculate:
 
                     return False
 
-                if key <= remainderPrevious and self.data[key].count > 0:
-                    self.new_sum = remainderPrevious
+                if key <= remainder_previous and self.data[key].count > 0:
+                    self.new_sum = remainder_previous
                     self.data[self.previous_ticket].taken_tickets = -1
                     self.previous_ticket = self.ticket
                     self.data[self.ticket].taken_tickets = 1

@@ -4,7 +4,7 @@ from aiogram import executor
 from loguru import logger
 
 from loader import dp, bot
-from commands import calculate
+from commands import calculation
 
 logger.add(sink=sys.stdout, format="{time:/YYYY-MM-DD HH:mm:ss} {level} {message}")
 
@@ -18,7 +18,7 @@ async def on_start(_) -> None:
 
     try:
         logger.info('Bot start work')
-        await calculate.Command.register_command(dp)
+        await calculation.Command.register_command(dp)
 
     except Exception as err:
         logger.exception(err)

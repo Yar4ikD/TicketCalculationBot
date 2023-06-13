@@ -7,22 +7,21 @@ from aiogram.types import ReplyKeyboardRemove
 from loguru import logger
 
 from commands.base import stop_working
-from data_processing.calculate import Calculate
-from data_processing.checking import DataCheck
-from data_processing.node import Node
-from data_processing.showInputData import show
-from data_processing.showResult import standard_format, file_format
+from ticket.node import Node
+from utils.calculate import Calculate
+from utils.checking import DataCheck
+from view.calculation import standard_format, file_format, show
 from keyboard.input_data import Buttons
-from text.commandsText import (information_start,
-                               choose_ticket,
-                               left_data_entry,
-                               get_ticket_error,
-                               enter_start_number,
-                               err_st_num_or_amount,
-                               changed_section,
-                               choose_format_view,
-                               err_input_sum
-                               )
+from text.commands import (information_start,
+                           choose_ticket,
+                           left_data_entry,
+                           get_ticket_error,
+                           enter_start_number,
+                           err_st_num_or_amount,
+                           changed_section,
+                           choose_format_view,
+                           err_input_sum
+                           )
 
 
 class Command(StatesGroup):

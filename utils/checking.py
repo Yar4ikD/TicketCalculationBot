@@ -1,6 +1,6 @@
 from typing import Dict
 
-from data_processing.node import Node
+from ticket.node import Node
 
 
 class DataCheck:
