@@ -3,6 +3,8 @@
 import random
 from collections import deque
 from typing import Dict, Union
+
+from loggerSetup import loggers
 from ticket.node import Node
 
 
@@ -107,7 +109,7 @@ class Calculate:
 
         self.data['sum_money'] = self.new_sum
         self.data['error'] = 'Ошибка работы расчета!\nПроверьте корректность ввода данных!'
-
+        loggers.utils.warning(f'Ошибка расчета: sum - {self.summ}')
         return self.data
 
     def is_new_sum_equal_input_sum(self) -> bool:

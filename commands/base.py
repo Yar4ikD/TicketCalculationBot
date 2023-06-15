@@ -1,7 +1,6 @@
 from aiogram import types
 from aiogram.dispatcher import FSMContext
 from aiogram.types import ReplyKeyboardRemove
-from loguru import logger
 
 from text.commands import after_out
 
@@ -19,7 +18,6 @@ async def stop_working(callback: types.Message, state: FSMContext) -> None:
 
     """
     now_state = await state.get_state()
-    logger.info(f"{now_state}")
     if now_state is None:
         return
 

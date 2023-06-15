@@ -1,12 +1,11 @@
-
 from aiogram import types, Dispatcher
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Text
 from aiogram.dispatcher.filters.state import StatesGroup, State
 from aiogram.types import ReplyKeyboardRemove
-from loguru import logger
 
 from commands.base import stop_working
+from loggerSetup.loggers import commandCalculate
 from ticket.node import Node
 from utils.calculate import Calculate
 from utils.checking import DataCheck
@@ -60,7 +59,7 @@ class Command(StatesGroup):
         Returns: None
 
         """
-        logger.info(f'User id: {message.from_user.id}')
+        commandCalculate.info(f'User id: {message.from_user.id}')
         await cls._money.set()  # запускаем FSM состояния бота
         await message.answer(text=information_start)
 
@@ -221,7 +220,7 @@ class Command(StatesGroup):
                 file = open(file_path, 'rb')
 
             except FileNotFoundError as err:
-                logger.exception(err)
+                commandCalculate.exception(err)
                 await message.answer('Ошибка отправки файла! Обратитесь к администратору.')
 
             else:
