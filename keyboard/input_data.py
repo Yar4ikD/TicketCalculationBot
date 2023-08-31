@@ -5,20 +5,20 @@ from keyboard.base import UniversalButtons
 
 class Buttons(UniversalButtons):
     """
-        Класс наследует от базового класса UniversalButtons.
-        Методы класса отвечают за создание кнопок и клавиатуры ТГ-Бота.
+    Класс наследует от базового класса UniversalButtons.
+    Методы класса отвечают за создание кнопок и клавиатуры ТГ-Бота.
     """
 
-    choose_tickets = ['500₽', '400₽', '300₽', '250₽', '200₽', '150₽', '100₽', '50₽']
+    choose_tickets = ["500₽", "400₽", "300₽", "250₽", "200₽", "150₽", "100₽", "50₽"]
     tickets_but = [KeyboardButton(text=text) for text in choose_tickets]
 
-    view_data_but = KeyboardButton(text='Показать введенные данные')
-    skip_but = KeyboardButton(text='Пропустить.')
-    calculate_but = KeyboardButton(text='Рассчитать')
-    complete_input_but = KeyboardButton(text='Завершить ввод данных')
-    return_input_data = KeyboardButton('Ввести еще данные')
-    show_file_format = KeyboardButton('Файловый формат')
-    show_standard_format = KeyboardButton('Стандартный вывод')
+    view_data_but = KeyboardButton(text="Показать введенные данные")
+    skip_but = KeyboardButton(text="Пропустить.")
+    calculate_but = KeyboardButton(text="Рассчитать")
+    complete_input_but = KeyboardButton(text="Завершить ввод данных")
+    return_input_data = KeyboardButton("Ввести еще данные")
+    show_file_format = KeyboardButton("Файловый формат")
+    show_standard_format = KeyboardButton("Стандартный вывод")
 
     @classmethod
     def ticket_numbers(cls) -> ReplyKeyboardMarkup:

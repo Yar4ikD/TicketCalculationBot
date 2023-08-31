@@ -11,16 +11,17 @@ from utils.calculate import Calculate
 from utils.checking import DataCheck
 from view.calculation import standard_format, file_format, show
 from keyboard.input_data import Buttons
-from text.commands import (information_start,
-                           choose_ticket,
-                           left_data_entry,
-                           get_ticket_error,
-                           enter_start_number,
-                           err_st_num_or_amount,
-                           changed_section,
-                           choose_format_view,
-                           err_input_sum
-                           )
+from text.commands import (
+    information_start,
+    choose_ticket,
+    left_data_entry,
+    get_ticket_error,
+    enter_start_number,
+    err_st_num_or_amount,
+    changed_section,
+    choose_format_view,
+    err_input_sum,
+)
 
 
 class Command(StatesGroup):
@@ -38,7 +39,16 @@ class Command(StatesGroup):
     _calculate = State()
     _view = State()
 
-    tickets = {'500₽': 500, '400₽': 400, '300₽': 300, '250₽': 250, '200₽': 200, '150₽': 150, '100₽': 100, '50₽': 50}
+    tickets = {
+        "500₽": 500,
+        "400₽": 400,
+        "300₽": 300,
+        "250₽": 250,
+        "200₽": 200,
+        "150₽": 150,
+        "100₽": 100,
+        "50₽": 50,
+    }
 
     current_value = None
     input_data = dict()
@@ -48,9 +58,11 @@ class Command(StatesGroup):
     @classmethod
     async def start(cls, message: types.Message, state: FSMContext) -> None:
         """
-        Метод класса запускает процесс работы команды ТГ-бота: Расчет количество взятых билетов для введенной суммы.
+        Метод класса запускает процесс работы команды ТГ-бота:
+        Расчет количество взятых билетов для введенной суммы.
         Запускает машинное состояние бота - FSM _money.
-        Выводит пользователю информацию о дальнейшем взаимодействии, пользователя с командой ТГ-бота.
+        Выводит пользователю информацию о дальнейшем взаимодействии,
+        пользователя с командой ТГ-бота.
 
         Args:
             message: Передает объект - входящий запрос обратного вызова с кнопки
@@ -59,7 +71,7 @@ class Command(StatesGroup):
         Returns: None
 
         """
-        commandCalculate.info(f'User id: {message.from_user.id}')
+        commandCalculate.info(f"User id: {message.from_user.id}")
         await cls._money.set()  # запускаем FSM состояния бота
         await message.answer(text=information_start)
 
@@ -78,18 +90,22 @@ class Command(StatesGroup):
 
         if message.text == Buttons.skip_but.text and cls.money:
             await cls._get_ticket.set()
-            await message.answer(text=choose_ticket, reply_markup=Buttons.ticket_numbers())
+            await message.answer(
+                text=choose_ticket, reply_markup=Buttons.ticket_numbers()
+            )
 
         else:
             try:
                 cls.money = abs(int(message.text))
 
-                assert cls.money > 999, 'Сума меньше 1000'
-                assert cls.money % 2 == 0, 'Сума не кратна 2'
-                assert cls.money % 10 == 0, 'Число не заканчивается на 0'
+                assert cls.money > 999, "Сума меньше 1000"
+                assert cls.money % 2 == 0, "Сума не кратна 2"
+                assert cls.money % 10 == 0, "Число не заканчивается на 0"
 
                 await cls._get_ticket.set()
-                await message.answer(text=choose_ticket, reply_markup=Buttons.ticket_numbers())
+                await message.answer(
+                    text=choose_ticket, reply_markup=Buttons.ticket_numbers()
+                )
 
             except (ValueError, AssertionError):
                 await message.reply(text=err_input_sum)
@@ -109,14 +125,18 @@ class Command(StatesGroup):
 
         if message.text == Buttons.complete_input_but.text:
             await cls._calculate.set()
-            await message.answer(text=left_data_entry, reply_markup=Buttons.view_calculate())
+            await message.answer(
+                text=left_data_entry, reply_markup=Buttons.view_calculate()
+            )
 
         else:
             try:
                 cls.current_value = cls.tickets[message.text]
 
                 await cls._start_number.set()
-                await message.answer(text=enter_start_number, reply_markup=ReplyKeyboardRemove())
+                await message.answer(
+                    text=enter_start_number, reply_markup=ReplyKeyboardRemove()
+                )
 
             except KeyError:
                 await message.reply(text=get_ticket_error)
@@ -140,7 +160,7 @@ class Command(StatesGroup):
             cls.input_data[cls.current_value].start_number = value
 
             await cls._amount.set()
-            await message.answer('Принято!\nКакое кол-во билета?.')
+            await message.answer("Принято!\nКакое кол-во билета?.")
 
         except ValueError:
             await message.reply(text=err_st_num_or_amount)
@@ -163,35 +183,48 @@ class Command(StatesGroup):
             cls.input_data[cls.current_value].count = value
 
             await cls._get_ticket.set()
-            await message.answer(text='Принято!\nПродолжаем.', reply_markup=Buttons.ticket_numbers())
+            await message.answer(
+                text="Принято!\nПродолжаем.", reply_markup=Buttons.ticket_numbers()
+            )
 
         except ValueError:
             await message.reply(text=err_st_num_or_amount)
 
     @classmethod
     async def calculate(cls, message: types.Message, state: FSMContext):
-
-        if message.text == Buttons.view_data_but.text:  # выводим данные которые ввел пользователь
+        if (
+            message.text == Buttons.view_data_but.text
+        ):  # выводим данные которые ввел пользователь
             msg = show(cls.input_data, cls.money)
             await message.answer(text=msg, reply_markup=Buttons.calculate())
 
-        elif message.text == Buttons.return_input_data.text:  # возвращаем пользователя в блок ввода суммы денег
+        elif (
+            message.text == Buttons.return_input_data.text
+        ):  # возвращаем пользователя в блок ввода суммы денег
             await cls._money.set()
             await message.answer(text=changed_section, reply_markup=Buttons.skip())
 
         elif message.text == Buttons.calculate_but.text:  # запускаем расчет
-
-            if DataCheck.money_and_tickets(input_data=cls.input_data, money=cls.money):  # если сумма билетов >= денег
-                cls.resultDict = Calculate(input_sum=cls.money).calculate(data=cls.input_data)
+            if DataCheck.money_and_tickets(
+                input_data=cls.input_data, money=cls.money
+            ):  # если сумма билетов >= денег
+                cls.resultDict = Calculate(input_sum=cls.money).calculate(
+                    data=cls.input_data
+                )
 
                 await cls._view.set()
-                await message.answer(text=choose_format_view, reply_markup=Buttons.result_format())
+                await message.answer(
+                    text=choose_format_view, reply_markup=Buttons.result_format()
+                )
+
+            else:
+                await message.answer(
+                    text="Сумма билетов, <b>меньшая</b> суммы денег.",
+                    reply_markup=Buttons.return_input_or_out(),
+                )
 
         else:
-            await message.answer(
-                text='Сумма билетов, <b>меньшая</b> суммы денег.',
-                reply_markup=Buttons.return_input_or_out()
-            )
+            await message.reply(f"Я не понимаю что означает: {message.text}")
 
     @classmethod
     async def show_result(cls, message: types.Message, state: FSMContext):
@@ -209,26 +242,35 @@ class Command(StatesGroup):
 
         if message.text == Buttons.show_standard_format.text:
             msg = standard_format(data=cls.resultDict)
+            cls.input_data = dict()
+            cls.resultDict = None
 
             await message.answer(text=msg, reply_markup=ReplyKeyboardRemove())
-            await state.finish()
+            await cls.first()
 
         elif message.text == Buttons.show_file_format.text:
             file_path = file_format(data=cls.resultDict)
 
             try:
-                file = open(file_path, 'rb')
+                file = open(file_path, "rb")
 
             except FileNotFoundError as err:
                 commandCalculate.exception(err)
-                await message.answer('Ошибка отправки файла! Обратитесь к администратору.')
+                await message.answer(
+                    "Ошибка отправки файла! Обратитесь к администратору."
+                )
 
             else:
+                cls.input_data = dict()
+                cls.resultDict = None
+
                 await message.answer_document(file, reply_markup=ReplyKeyboardRemove())
-                await state.finish()
+                await cls.first()
 
         else:
-            await message.reply('Я не понимаю что мне делать.', reply_markup=Buttons.result_format())
+            await message.reply(
+                "Я не понимаю что мне делать.", reply_markup=Buttons.result_format()
+            )
 
     @classmethod
     async def register_command(cls, dp: Dispatcher) -> None:
@@ -242,8 +284,12 @@ class Command(StatesGroup):
 
         """
 
-        dp.register_message_handler(cls.start, Text(equals=['start', 'старт', '/start'], ignore_case=True), state=None)
-        dp.register_message_handler(stop_working, Text(Buttons.but_out.text), state='*')
+        dp.register_message_handler(
+            cls.start,
+            Text(equals=["start", "старт", "/start"], ignore_case=True),
+            state=None,
+        )
+        dp.register_message_handler(stop_working, Text(Buttons.but_out.text), state="*")
         dp.register_message_handler(callback=cls.sum_money, state=cls._money)
 
         dp.register_message_handler(callback=cls.ticket_value, state=cls._get_ticket)

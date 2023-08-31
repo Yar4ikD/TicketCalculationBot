@@ -39,13 +39,18 @@ class Calculate:
 
     @graph.setter
     def graph(self, data: Dict) -> None:
-        self.__graph = {key: [node for node in data.keys() if node != key and data[key].count > 0] for key in data}
+        self.__graph = {
+            key: [node for node in data.keys() if node != key and data[key].count > 0]
+            for key in data
+        }
 
     @graph.getter
     def graph(self) -> Dict:
         return self.__graph
 
-    def calculate(self, data: Dict[Union[int, str], Union[Node, str, int]]) -> Dict[Union[int, str], Union[Node, str]]:
+    def calculate(
+        self, data: Dict[Union[int, str], Union[Node, str, int]]
+    ) -> Dict[Union[int, str], Union[Node, str]]:
         """
         Метод расчета.
         Для расчета суммы используется алгоритм обход графа: поиск в ширину (BFS).
@@ -72,7 +77,6 @@ class Calculate:
             self.ticket = search_deque.popleft()
 
             if self.data[self.ticket].count > 1 and self.ticket not in self.searched:
-
                 if self.check_balance_new_sum():
                     self.new_sum -= self.last_ticket
                     self.data[self.last_ticket].taken_tickets = -1
@@ -87,7 +91,7 @@ class Calculate:
                     self.new_sum += self.ticket
 
                     self.data[self.ticket].taken_tickets = 1
-                    self.data['sum_money'] = self.new_sum
+                    self.data["sum_money"] = self.new_sum
 
                     return self.data
 
@@ -107,14 +111,17 @@ class Calculate:
                         self.previous_ticket = self.last_ticket
                         self.last_ticket = self.ticket
 
-        self.data['sum_money'] = self.new_sum
-        self.data['error'] = 'Ошибка работы расчета!\nПроверьте корректность ввода данных!'
-        loggers.utils.warning(f'Ошибка расчета: sum - {self.summ}')
+        self.data["sum_money"] = self.new_sum
+        self.data[
+            "error"
+        ] = "Ошибка работы расчета!\nПроверьте корректность ввода данных!"
+        loggers.utils.warning(f"Ошибка расчета: sum - {self.summ}")
         return self.data
 
     def is_new_sum_equal_input_sum(self) -> bool:
         """
-        Метод делает проверку на равенство введенной суммы пользователем и новой расчетной суммы.
+        Метод делает проверку на равенство введенной суммы пользователем
+        и новой расчетной суммы.
 
         Returns: bool
 
@@ -124,16 +131,21 @@ class Calculate:
             return True
 
     def check_balance_new_sum(self) -> bool:
-
-        if (self.new_sum + self.ticket) > self.summ:  # если новая сумма больше введенной суммы
+        if (
+            self.new_sum + self.ticket
+        ) > self.summ:  # если новая сумма больше введенной суммы
             remainder = self.summ - self.new_sum
 
             if remainder in (key for key in self.data if self.data[key].count > 0):
                 self.ticket = remainder
                 return False
 
-            remainder_last = self.summ - ((self.new_sum - self.last_ticket) + self.ticket)
-            remainder_previous = self.summ - ((self.new_sum - self.previous_ticket) + self.ticket)
+            remainder_last = self.summ - (
+                (self.new_sum - self.last_ticket) + self.ticket
+            )
+            remainder_previous = self.summ - (
+                (self.new_sum - self.previous_ticket) + self.ticket
+            )
 
             for key in self.data:
                 if key == self.ticket and self.data[self.ticket].count < 2:

@@ -8,5 +8,5 @@ from dotenv import load_dotenv, find_dotenv
 
 load_dotenv(find_dotenv())
 
-TOKEN = os.getenv('TOKEN')
-URL_APP = os.getenv('URL_APP')
+TOKEN = os.getenv("TOKEN")
+URL_APP = os.getenv("URL_APP")

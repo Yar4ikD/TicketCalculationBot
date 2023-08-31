@@ -5,11 +5,11 @@ from aiogram.types import KeyboardButton, ReplyKeyboardMarkup
 
 class UniversalButtons:
     """
-        Базовый класс, в котором прописаны часто используемые кнопки ТГ-бота.
+    Базовый класс, в котором прописаны часто используемые кнопки ТГ-бота.
     """
 
-    but_command_again = KeyboardButton(text='Запусти команду заново.')
-    but_out = KeyboardButton(text='Завершить работу')
+    but_command_again = KeyboardButton(text="Запусти команду заново.")
+    but_out = KeyboardButton(text="Завершить работу")
 
     @classmethod
     def out_or_return(cls) -> ReplyKeyboardMarkup:

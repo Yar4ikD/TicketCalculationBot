@@ -13,11 +13,12 @@ async def on_start(_) -> None:
     """
 
     try:
-        root.info('Bot start work')
+        root.info("Bot start work")
         await calculation.Command.register_command(dp)
 
     except Exception as err:
         root.exception(err)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     executor.start_polling(dp, skip_updates=True, on_startup=on_start)

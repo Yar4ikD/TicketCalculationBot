@@ -1,9 +1,9 @@
-
 class Node:
     """
     Клас номинал билета.
 
     """
+
     def __init__(self, denomination: int) -> None:
         """
         Конструктор класса.
